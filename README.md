@@ -262,7 +262,9 @@ Call `preload()` at startup and reuse threads when possible to benefit from cach
 
 ## License
 
-[Specify your license here]
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+This library was adapted from TSAGeoMag.java (public domain, Los Alamos National Laboratory) and GeomagneticField.java (Apache License 2.0, The Android Open Source Project). See the [NOTICE](NOTICE) file for attribution details.
 
 ## Contributing
 

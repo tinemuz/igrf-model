@@ -1,0 +1,32 @@
+IGRF Model Library
+Copyright 2025 tinemuz
+
+This product includes software adapted from:
+
+1. TSAGeoMag.java - Los Alamos National Laboratory (LANL)
+   Public Domain
+   
+   This program was prepared by Los Alamos National Security, LLC 
+   at Los Alamos National Laboratory (LANL) under contract No. 
+   DE-AC52-06NA25396 with the U.S. Department of Energy (DOE). 
+   All rights in the program are reserved by the DOE and 
+   Los Alamos National Security, LLC. Permission is granted to the 
+   public to copy and use this software without charge, 
+   provided that this Notice and any statement of authorship are 
+   reproduced on all copies.
+
+2. GeomagneticField.java - The Android Open Source Project
+   Licensed under the Apache License, Version 2.0
+   Copyright (C) 2009 The Android Open Source Project
+
+The IGRF model coefficients and algorithms are based on the World Magnetic 
+Model (WMM) produced by the United States National Geospatial-Intelligence 
+Agency and the International Geomagnetic Reference Field (IGRF) produced by 
+the International Association of Geomagnetism and Aeronomy (IAGA).
+
+The WMM source code is in the public domain and not licensed or under 
+copyright. The information and software may be used freely by the public. 
+As required by 17 U.S.C. 403, third parties producing copyrighted works 
+consisting predominantly of the material produced by U.S. government agencies 
+must provide notice with such work(s) identifying the U.S. Government material 
+incorporated and stating that such material is not subject to copyright protection.
