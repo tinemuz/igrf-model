@@ -147,19 +147,17 @@ All field components are in nanoteslas (nT).
 
 ### IGRF Model
 
-The library implements the International Geomagnetic Reference Field using spherical harmonic expansion to degree and order 13. The magnetic scalar potential V at position (r, θ, φ) is:
+The library implements the International Geomagnetic Reference Field using spherical harmonic expansion to degree and order 13. The magnetic scalar potential $V$ at position $(r, \theta, \phi)$ is:
 
-```
-V = a Σ(a/r)^(n+1) Σ[g_n^m cos(mφ) + h_n^m sin(mφ)]P_n^m(cos θ)
-```
+$$V(r, \theta, \phi) = a \sum_{n=1}^{N} \left(\frac{a}{r}\right)^{n+1} \sum_{m=0}^{n} \left[ g_n^m \cos(m\phi) + h_n^m \sin(m\phi) \right] P_n^m(\cos\theta)$$
 
 Where:
-- a = 6371.2 km (reference Earth radius)
-- g_n^m, h_n^m are Gauss coefficients (Schmidt quasi-normalized)
-- P_n^m are associated Legendre functions
-- N = 13 (maximum degree and order)
+- $a = 6371.2$ km (reference Earth radius)
+- $g_n^m, h_n^m$ are Gauss coefficients (Schmidt quasi-normalized)
+- $P_n^m$ are associated Legendre functions
+- $N = 13$ (maximum degree and order)
 
-The magnetic field components are derived as B = -∇V, with additional transformations from geocentric to geodetic coordinates.
+The magnetic field components are derived as $\mathbf{B} = -\nabla V$, with additional transformations from geocentric to geodetic coordinates.
 
 ### Key Algorithms
 
