@@ -2,9 +2,11 @@
 
 A lightweight Java library for calculating Earth's magnetic field using the International Geomagnetic Reference Field (IGRF) model. The IGRF is a model of the Earth's main magnetic field that is updated every 5 years. This library provides accurate magnetic declination, inclination, and field intensity calculations essential for navigation applications.
 
-The library includes embedded IGRF-14 coefficients (epochs 1900-2030) in the JAR, so users don't need to source, manage, or update coefficient files separately. The implementation uses spherical harmonic expansion to degree and order 13, features zero-allocation computation after initialization, and is thread-safe with per-thread workspace caching. It has no external dependencies and supports WGS-84 geodetic coordinates.
+The library includes embedded IGRF-14 coefficients (epochs 1900-2030) in the JAR. The implementation uses spherical harmonic expansion to degree and order 13. It has no external dependencies and supports WGS-84 geodetic coordinates.
 
-**Note that this library uses IGRF-14 coefficients (epochs 1900-2030)**
+No need to source and maintain your own coefficient files.
+
+> Note that this library uses IGRF-14 coefficients (epochs 1900-2030)
 
 ## Install
 
@@ -41,10 +43,6 @@ Field field = IGRFModel.compute(
 );
 
 double declination = field.declinationDeg;
-
-// Convert headings
-double magneticHeading = trueHeading - declination;
-double trueHeading = magneticHeading + declination;
 ```
 
 The compute method returns a Field object containing all magnetic field components and derived quantities:
@@ -60,26 +58,6 @@ field.hHorizontalNt  // Horizontal intensity
 field.fTotalNt       // Total field intensity
 field.declinationDeg // Declination (magnetic variation)
 field.inclinationDeg // Inclination (dip angle)
-```
-
-Common use cases include aviation flight planning, marine compass navigation, magnetic anomaly detection in surveys, and magnetometer calibration for drones:
-
-```java
-// Aviation - Flight Planning
-Field field = IGRFModel.compute(lat, lon, cruiseAlt, departureTime);
-double magneticCourse = trueCourse - field.declinationDeg;
-
-// Marine - Compass Navigation
-Field field = IGRFModel.compute(vesselLat, vesselLon, 0, System.currentTimeMillis());
-double trueHeading = compassHeading + field.declinationDeg + compassDeviation;
-
-// Survey - Magnetic Anomaly Detection
-Field field = IGRFModel.compute(surveyLat, surveyLon, surveyAlt, surveyTime);
-double anomaly = measuredField - field.fTotalNt;
-
-// Drones - Magnetometer Calibration
-Field field = IGRFModel.compute(droneLat, droneLon, droneAlt, System.currentTimeMillis());
-calibrator.setReference(field.xNorthNt, field.yEastNt, field.zDownNt);
 ```
 
 ## Coordinates and Output
