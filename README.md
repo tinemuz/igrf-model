@@ -13,16 +13,29 @@ No need to source and maintain your own coefficient files.
 ### Maven
 ```xml
 <dependency>
-    <groupId>com.github.tinemuz</groupId>
+    <groupId>io.github.tinemuz</groupId>
     <artifactId>igrf-model</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.0.1-SNAPSHOT</version>
 </dependency>
 ```
 
 ### Gradle
 ```gradle
-implementation 'com.github.tinemuz:igrf-model:1.0-SNAPSHOT'
+implementation 'io.github.tinemuz:igrf-model:0.0.1-SNAPSHOT'
 ```
+
+> **Note:** Snapshot versions are published automatically to Maven Central snapshots repository. For snapshots, add the repository:
+> ```xml
+> <repositories>
+>     <repository>
+>         <id>sonatype-snapshots</id>
+>         <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
+>         <snapshots>
+>             <enabled>true</enabled>
+>         </snapshots>
+>     </repository>
+> </repositories>
+> ```
 
 ## Example
 
@@ -108,4 +121,4 @@ Contributions are welcome. Please ensure code follows existing conventions, all 
 
 ---
 
-**Version 1.0-SNAPSHOT** - IGRF-14 model support (epochs 1900-2030)
+**Version 0.0.1-SNAPSHOT** - IGRF-14 model support (epochs 1900-2030)
