@@ -126,8 +126,8 @@ public final class IGRFModel {
     private static double[] epochs;
     private static float[][][] gCoeffs;
     private static float[][][] hCoeffs;
-    private static float[][] svG2025;
-    private static float[][] svH2025;
+    private static float[][] svG;
+    private static float[][] svH;
     private static float baseYearAnchor;
     private static long baseYearMillis;
     private static volatile boolean warnedFutureBeyond5Years = false;
@@ -330,8 +330,8 @@ public final class IGRFModel {
                     float baseG = gCoeffs[n][m][E - 1];
                     float baseH = hCoeffs[n][m][E - 1];
                     // Apply secular variation: coeff = baseCoeff + dt*SV
-                    float gnm = useSv ? baseG + dt * svG2025[n][m] : baseG;
-                    float hnm = useSv ? baseH + dt * svH2025[n][m] : baseH;
+                    float gnm = useSv ? baseG + dt * svG[n][m] : baseG;
+                    float hnm = useSv ? baseH + dt * svH[n][m] : baseH;
                     float a = gnm * ws.cosMLon[m] + hnm * ws.sinMLon[m];
                     float b = gnm * ws.sinMLon[m] - hnm * ws.cosMLon[m];
                     gcX += rn * a * dpS[m];
@@ -455,9 +455,12 @@ public final class IGRFModel {
                 else hRows.add(row);
             }
             if (years.isEmpty()) {
+                // Derive epoch count from the first data row
+                int dataEpochs = gRows.isEmpty() ? 0 : gRows.get(0).length - 3;
                 List<Double> defaultYears = new ArrayList<>();
-                for (int y = 1900; y <= 1995; y += 5) defaultYears.add((double) y);
-                for (int y : new int[] {2000, 2005, 2010, 2015, 2020, 2025}) defaultYears.add((double) y);
+                for (int i = 0; i < dataEpochs; i++) {
+                    defaultYears.add(1900.0 + i * 5.0);
+                }
                 years = defaultYears;
             }
             epochs = years.stream().mapToDouble(Double::doubleValue).toArray();
@@ -467,21 +470,21 @@ public final class IGRFModel {
             baseYearMillis = millisAtUtcJan1(latestYear);
             gCoeffs = new float[MAX_N + 1][MAX_N + 1][epochCount];
             hCoeffs = new float[MAX_N + 1][MAX_N + 1][epochCount];
-            svG2025 = new float[MAX_N + 1][MAX_N + 1];
-            svH2025 = new float[MAX_N + 1][MAX_N + 1];
+            svG = new float[MAX_N + 1][MAX_N + 1];
+            svH = new float[MAX_N + 1][MAX_N + 1];
             for (float[] row : gRows) {
                 int n = (int) row[0];
                 int m = (int) row[1];
                 int evals = row.length - 3;
                 System.arraycopy(row, 3, gCoeffs[n][m], 0, epochCount);
-                if (evals > epochCount) svG2025[n][m] = row[3 + epochCount];
+                if (evals > epochCount) svG[n][m] = row[3 + epochCount];
             }
             for (float[] row : hRows) {
                 int n = (int) row[0];
                 int m = (int) row[1];
                 int evals = row.length - 3;
                 System.arraycopy(row, 3, hCoeffs[n][m], 0, epochCount);
-                if (evals > epochCount) svH2025[n][m] = row[3 + epochCount];
+                if (evals > epochCount) svH[n][m] = row[3 + epochCount];
             }
         } catch (IOException e) {
             throw new IllegalStateException("Failed to read IGRF coefficients file", e);
