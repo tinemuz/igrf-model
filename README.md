@@ -33,7 +33,7 @@ IGRFModel.preload(); // Recommended to call at application startup
 Magnetic field values depend on time and position. Position is specified using WGS-84 geodetic coordinates (latitude, longitude, altitude). Example for calculating magnetic declination:
 
 ```java
-Result field = IGRFModel.compute(
+Field field = IGRFModel.compute(
     40.7128,                    // Latitude (degrees, north positive)
     -74.0060,                   // Longitude (degrees, east positive)
     100.0,                      // Altitude (meters above MSL)
@@ -47,10 +47,10 @@ double magneticHeading = trueHeading - declination;
 double trueHeading = magneticHeading + declination;
 ```
 
-The compute method returns a Result object containing all magnetic field components and derived quantities:
+The compute method returns a Field object containing all magnetic field components and derived quantities:
 
 ```java
-Result field = IGRFModel.compute(latitude, longitude, altitude, epochMillis);
+Field field = IGRFModel.compute(latitude, longitude, altitude, epochMillis);
 
 // Access components (all in nanoteslas, except angles in degrees)
 field.xNorthNt       // North component
@@ -66,19 +66,19 @@ Common use cases include aviation flight planning, marine compass navigation, ma
 
 ```java
 // Aviation - Flight Planning
-Result field = IGRFModel.compute(lat, lon, cruiseAlt, departureTime);
+Field field = IGRFModel.compute(lat, lon, cruiseAlt, departureTime);
 double magneticCourse = trueCourse - field.declinationDeg;
 
 // Marine - Compass Navigation
-Result field = IGRFModel.compute(vesselLat, vesselLon, 0, System.currentTimeMillis());
+Field field = IGRFModel.compute(vesselLat, vesselLon, 0, System.currentTimeMillis());
 double trueHeading = compassHeading + field.declinationDeg + compassDeviation;
 
 // Survey - Magnetic Anomaly Detection
-Result field = IGRFModel.compute(surveyLat, surveyLon, surveyAlt, surveyTime);
+Field field = IGRFModel.compute(surveyLat, surveyLon, surveyAlt, surveyTime);
 double anomaly = measuredField - field.fTotalNt;
 
 // Drones - Magnetometer Calibration
-Result field = IGRFModel.compute(droneLat, droneLon, droneAlt, System.currentTimeMillis());
+Field field = IGRFModel.compute(droneLat, droneLon, droneAlt, System.currentTimeMillis());
 calibrator.setReference(field.xNorthNt, field.yEastNt, field.zDownNt);
 ```
 

@@ -14,7 +14,7 @@ import java.util.List;
  * 
  * <p><b>Usage:</b>
  * <pre>
- * Result field = IGRFModel.compute(latitude, longitude, altitude, epochMillis);
+ * Field field = IGRFModel.compute(latitude, longitude, altitude, epochMillis);
  * double declination = field.declinationDeg;  // magnetic variation
  * </pre>
  *
@@ -77,10 +77,10 @@ public final class IGRFModel {
      * @param gdLongitudeDeg geodetic longitude in degrees (east positive)
      * @param altitudeMeters altitude above MSL in meters (WGS-84)
      * @param epochMillis UTC time in epoch milliseconds
-     * @return {@link Result} with field components (nT), declination, and inclination (degrees)
+     * @return {@link Field} with field components (nT), declination, and inclination (degrees)
      * @throws IllegalStateException if coefficient file not found on classpath
      */
-    public static Result compute(
+    public static Field compute(
             double gdLatitudeDeg, double gdLongitudeDeg, double altitudeMeters, long epochMillis) {
         ensureLoaded();
         
@@ -231,7 +231,7 @@ public final class IGRFModel {
         // Rotation: X_ned = X_gc*cos(Δlat) + Z_gc*sin(Δlat)
         //           Y_ned = Y_gc (unchanged)
         //           Z_ned = -X_gc*sin(Δlat) + Z_gc*cos(Δlat)
-        return new Result(gcX * cosLd + gcZ * sinLd, gcY, -gcX * sinLd + gcZ * cosLd);
+        return new Field(gcX * cosLd + gcZ * sinLd, gcY, -gcX * sinLd + gcZ * cosLd);
     }
 
     /**
@@ -470,10 +470,10 @@ public final class IGRFModel {
     }
 
     /**
-     * Immutable result of an IGRF evaluation.
+     * Immutable result of an IGRF evaluation containing magnetic field components and derived quantities.
      * <p>All fields are in SI-derived units noted by their suffixes.</p>
      */
-    public static final class Result {
+    public static final class Field {
         /** X component (north) in nanoteslas (nT). */
         public final float xNorthNt;
 
@@ -495,7 +495,7 @@ public final class IGRFModel {
         /** Inclination I (dip) = atan2(Z, H) in degrees, positive downward. */
         public final float inclinationDeg;
 
-        private Result(float x, float y, float z) {
+        private Field(float x, float y, float z) {
             this.xNorthNt = x;
             this.yEastNt = y;
             this.zDownNt = z;

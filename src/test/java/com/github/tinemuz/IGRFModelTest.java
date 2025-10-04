@@ -3,7 +3,7 @@ package com.github.tinemuz;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.github.tinemuz.IGRFModel.Result;
+import com.github.tinemuz.IGRFModel.Field;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import org.junit.jupiter.api.BeforeAll;
@@ -35,33 +35,33 @@ class IGRFModelTest {
     class CoreFunctionalityTests {
 
         @Test
-        @DisplayName("Result fields are finite and within valid ranges")
+        @DisplayName("Field values are finite and within valid ranges")
         void resultFieldsValid() {
-            Result result = IGRFModel.compute(51.5074, -0.1278, 50, epochMillis(2025, 1, 1));
+            Field Field = IGRFModel.compute(51.5074, -0.1278, 50, epochMillis(2025, 1, 1));
 
-            assertNotNull(result);
+            assertNotNull(Field);
             // All components should be finite
-            assertFinite(result.xNorthNt, "X component");
-            assertFinite(result.yEastNt, "Y component");
-            assertFinite(result.zDownNt, "Z component");
-            assertFinite(result.hHorizontalNt, "Horizontal intensity");
-            assertFinite(result.fTotalNt, "Total intensity");
-            assertFinite(result.declinationDeg, "Declination");
-            assertFinite(result.inclinationDeg, "Inclination");
+            assertFinite(Field.xNorthNt, "X component");
+            assertFinite(Field.yEastNt, "Y component");
+            assertFinite(Field.zDownNt, "Z component");
+            assertFinite(Field.hHorizontalNt, "Horizontal intensity");
+            assertFinite(Field.fTotalNt, "Total intensity");
+            assertFinite(Field.declinationDeg, "Declination");
+            assertFinite(Field.inclinationDeg, "Inclination");
             
             // Angles should be in valid ranges
             assertTrue(
-                    result.declinationDeg >= -180 && result.declinationDeg <= 180,
+                    Field.declinationDeg >= -180 && Field.declinationDeg <= 180,
                     "Declination in [-180°, 180°]");
             assertTrue(
-                    result.inclinationDeg >= -90 && result.inclinationDeg <= 90,
+                    Field.inclinationDeg >= -90 && Field.inclinationDeg <= 90,
                     "Inclination in [-90°, 90°]");
         }
 
         @Test
         @DisplayName("Field intensity relationships are consistent")
         void fieldIntensityRelationships() {
-            Result r = IGRFModel.compute(35.6762, 139.6503, 40, epochMillis(2025, 1, 1));
+            Field r = IGRFModel.compute(35.6762, 139.6503, 40, epochMillis(2025, 1, 1));
 
             // H² = X² + Y²
             double hCalc = Math.sqrt(r.xNorthNt * r.xNorthNt + r.yEastNt * r.yEastNt);
@@ -82,7 +82,7 @@ class IGRFModelTest {
         @Test
         @DisplayName("Declination and inclination formulas verified")
         void angleFormulas() {
-            Result r = IGRFModel.compute(40.7, -74.0, 100, epochMillis(2025, 1, 1));
+            Field r = IGRFModel.compute(40.7, -74.0, 100, epochMillis(2025, 1, 1));
 
             // Declination = atan2(Y, X)
             double decCalc = Math.toDegrees(Math.atan2(r.yEastNt, r.xNorthNt));
@@ -102,7 +102,7 @@ class IGRFModelTest {
         @DisplayName("New York City - 2025")
         void newYorkCity2025() {
             // NYC: 40.7128°N, 74.0060°W, elevation 10m, Jan 1 2025
-            Result r = IGRFModel.compute(40.7128, -74.0060, 10, epochMillis(2025, 1, 1));
+            Field r = IGRFModel.compute(40.7128, -74.0060, 10, epochMillis(2025, 1, 1));
 
             // Expected values (approximate from NOAA calculator)
             assertEquals(-13.0, r.declinationDeg, DECLINATION_TOLERANCE, "NYC declination");
@@ -118,7 +118,7 @@ class IGRFModelTest {
         @DisplayName("London - 2025")
         void london2025() {
             // London: 51.5074°N, 0.1278°W, elevation 11m
-            Result r = IGRFModel.compute(51.5074, -0.1278, 11, epochMillis(2025, 1, 1));
+            Field r = IGRFModel.compute(51.5074, -0.1278, 11, epochMillis(2025, 1, 1));
 
             assertEquals(0.5, r.declinationDeg, DECLINATION_TOLERANCE, "London declination");
             assertEquals(66.5, r.inclinationDeg, INCLINATION_TOLERANCE, "London inclination");
@@ -129,7 +129,7 @@ class IGRFModelTest {
         @DisplayName("Tokyo - 2025")
         void tokyo2025() {
             // Tokyo: 35.6762°N, 139.6503°E, elevation 40m
-            Result r = IGRFModel.compute(35.6762, 139.6503, 40, epochMillis(2025, 1, 1));
+            Field r = IGRFModel.compute(35.6762, 139.6503, 40, epochMillis(2025, 1, 1));
 
             assertEquals(-7.5, r.declinationDeg, DECLINATION_TOLERANCE, "Tokyo declination");
             assertEquals(50.0, r.inclinationDeg, INCLINATION_TOLERANCE, "Tokyo inclination");
@@ -140,7 +140,7 @@ class IGRFModelTest {
         @DisplayName("Sydney - 2025 (Southern Hemisphere)")
         void sydney2025() {
             // Sydney: 33.8688°S, 151.2093°E, elevation 58m
-            Result r = IGRFModel.compute(-33.8688, 151.2093, 58, epochMillis(2025, 1, 1));
+            Field r = IGRFModel.compute(-33.8688, 151.2093, 58, epochMillis(2025, 1, 1));
 
             assertEquals(12.5, r.declinationDeg, DECLINATION_TOLERANCE, "Sydney declination");
             assertEquals(-64.0, r.inclinationDeg, INCLINATION_TOLERANCE, "Sydney inclination");
@@ -155,7 +155,7 @@ class IGRFModelTest {
         @DisplayName("Equator - near-zero inclination")
         void equator() {
             // Near equator: 0°N, 0°E, sea level
-            Result r = IGRFModel.compute(0.0, 0.0, 0, epochMillis(2025, 1, 1));
+            Field r = IGRFModel.compute(0.0, 0.0, 0, epochMillis(2025, 1, 1));
 
             // Near magnetic equator, inclination should be relatively low
             // (Note: magnetic equator doesn't align exactly with geographic equator)
@@ -178,7 +178,7 @@ class IGRFModelTest {
         @DisplayName("North Pole - extreme latitude")
         void northPole() {
             // 89.9°N (avoid exact pole due to coordinate singularity)
-            Result r = IGRFModel.compute(89.9, 0, 0, epochMillis(2025, 1, 1));
+            Field r = IGRFModel.compute(89.9, 0, 0, epochMillis(2025, 1, 1));
 
             // Near pole: inclination close to 90° (vertical downward)
             assertTrue(r.inclinationDeg > 85, "North pole has steep inclination");
@@ -194,7 +194,7 @@ class IGRFModelTest {
         @DisplayName("South Pole - extreme latitude")
         void southPole() {
             // 89.9°S
-            Result r = IGRFModel.compute(-89.9, 0, 0, epochMillis(2025, 1, 1));
+            Field r = IGRFModel.compute(-89.9, 0, 0, epochMillis(2025, 1, 1));
 
             // Near south pole: inclination should be steep negative
             // (Note: magnetic south pole location affects exact value)
@@ -208,8 +208,8 @@ class IGRFModelTest {
         @DisplayName("Longitude wraparound: -180° and +180°")
         void longitudeWraparound() {
             long time = epochMillis(2025, 1, 1);
-            Result r1 = IGRFModel.compute(0, -180, 0, time);
-            Result r2 = IGRFModel.compute(0, 180, 0, time);
+            Field r1 = IGRFModel.compute(0, -180, 0, time);
+            Field r2 = IGRFModel.compute(0, 180, 0, time);
 
             // -180° and +180° are the same meridian
             assertEquals(r1.declinationDeg, r2.declinationDeg, 0.1, "Longitude wraparound");
@@ -220,7 +220,7 @@ class IGRFModelTest {
         @DisplayName("Negative altitude (below sea level)")
         void negativeAltitude() {
             // Dead Sea area: -430m elevation
-            Result r = IGRFModel.compute(31.5, 35.5, -430, epochMillis(2025, 1, 1));
+            Field r = IGRFModel.compute(31.5, 35.5, -430, epochMillis(2025, 1, 1));
 
             assertNotNull(r);
             assertFinite(r.fTotalNt, "Field at negative altitude");
@@ -231,13 +231,13 @@ class IGRFModelTest {
         @DisplayName("High altitude")
         void highAltitude() {
             // ISS orbit: ~400km altitude
-            Result r = IGRFModel.compute(0, 0, 400000, epochMillis(2025, 1, 1));
+            Field r = IGRFModel.compute(0, 0, 400000, epochMillis(2025, 1, 1));
 
             assertNotNull(r);
             assertFinite(r.fTotalNt, "Field at high altitude");
 
             // Field should be weaker at altitude (inverse cube law)
-            Result ground = IGRFModel.compute(0, 0, 0, epochMillis(2025, 1, 1));
+            Field ground = IGRFModel.compute(0, 0, 0, epochMillis(2025, 1, 1));
             assertTrue(r.fTotalNt < ground.fTotalNt, "Field weaker at altitude");
         }
     }
@@ -250,14 +250,14 @@ class IGRFModelTest {
         @DisplayName("Before first epoch: 1900")
         void beforeFirstEpoch() {
             // Test date before first epoch (should use earliest coefficients)
-            Result r1900 = IGRFModel.compute(40.7, -74.0, 0, epochMillis(1900, 1, 1));
+            Field r1900 = IGRFModel.compute(40.7, -74.0, 0, epochMillis(1900, 1, 1));
             
             assertNotNull(r1900);
             assertFinite(r1900.declinationDeg, "1900 declination");
             assertFinite(r1900.fTotalNt, "1900 field");
             
             // Should be different from 1905 (first interpolation)
-            Result r1905 = IGRFModel.compute(40.7, -74.0, 0, epochMillis(1905, 1, 1));
+            Field r1905 = IGRFModel.compute(40.7, -74.0, 0, epochMillis(1905, 1, 1));
             // Fields should be similar but not identical
             assertTrue(Math.abs(r1900.fTotalNt - r1905.fTotalNt) < 5000, 
                 "1900 and 1905 fields reasonably close");
@@ -266,14 +266,14 @@ class IGRFModelTest {
         @Test
         @DisplayName("Historical date: 1950")
         void historical1950() {
-            Result r = IGRFModel.compute(40.7, -74.0, 0, epochMillis(1950, 1, 1));
+            Field r = IGRFModel.compute(40.7, -74.0, 0, epochMillis(1950, 1, 1));
 
             assertNotNull(r);
             assertFinite(r.declinationDeg, "1950 declination");
             assertFinite(r.fTotalNt, "1950 field");
 
             // Secular variation: declination changes over time
-            Result r2025 = IGRFModel.compute(40.7, -74.0, 0, epochMillis(2025, 1, 1));
+            Field r2025 = IGRFModel.compute(40.7, -74.0, 0, epochMillis(2025, 1, 1));
             assertNotEquals(
                     r.declinationDeg,
                     r2025.declinationDeg,
@@ -285,13 +285,13 @@ class IGRFModelTest {
         @DisplayName("Future date with secular variation: 2028")
         void futureWithSV() {
             // Within 5 years of 2025 epoch - should use SV
-            Result r = IGRFModel.compute(40.7, -74.0, 0, epochMillis(2028, 1, 1));
+            Field r = IGRFModel.compute(40.7, -74.0, 0, epochMillis(2028, 1, 1));
 
             assertNotNull(r);
             assertFinite(r.declinationDeg, "2028 declination");
 
             // Should be slightly different from 2025 due to SV
-            Result r2025 = IGRFModel.compute(40.7, -74.0, 0, epochMillis(2025, 1, 1));
+            Field r2025 = IGRFModel.compute(40.7, -74.0, 0, epochMillis(2025, 1, 1));
             // SV may cause small change (could be less than 0.5° over 3 years)
             double change = Math.abs(r.declinationDeg - r2025.declinationDeg);
             assertTrue(change < 5.0, "SV causes reasonable change over 3 years: " + change);
@@ -301,13 +301,13 @@ class IGRFModelTest {
         @DisplayName("Far future date: 2035 (beyond SV limit)")
         void farFuture() {
             // Beyond 5 years - should be clamped and trigger warning
-            Result r2035 = IGRFModel.compute(40.7, -74.0, 0, epochMillis(2035, 1, 1));
+            Field r2035 = IGRFModel.compute(40.7, -74.0, 0, epochMillis(2035, 1, 1));
 
             assertNotNull(r2035);
             assertFinite(r2035.declinationDeg, "2035 declination (clamped)");
 
             // Should be same as 2030 (2025 + 5 years SV)
-            Result r2030 = IGRFModel.compute(40.7, -74.0, 0, epochMillis(2030, 1, 1));
+            Field r2030 = IGRFModel.compute(40.7, -74.0, 0, epochMillis(2030, 1, 1));
             assertEquals(
                     r2035.declinationDeg,
                     r2030.declinationDeg,
@@ -319,10 +319,10 @@ class IGRFModelTest {
         @DisplayName("Extremely far future: 2050 (way beyond SV)")
         void extremelyFarFuture() {
             // Test > 5 years beyond to ensure clamping logic is solid
-            Result r2050 = IGRFModel.compute(51.5, 0, 0, epochMillis(2050, 1, 1));
-            Result r2030 = IGRFModel.compute(51.5, 0, 0, epochMillis(2030, 1, 1));
+            Field r2050 = IGRFModel.compute(51.5, 0, 0, epochMillis(2050, 1, 1));
+            Field r2030 = IGRFModel.compute(51.5, 0, 0, epochMillis(2030, 1, 1));
             
-            // Should produce same result as 2030 (clamped at +5 years)
+            // Should produce same Field as 2030 (clamped at +5 years)
             assertEquals(r2050.declinationDeg, r2030.declinationDeg, 0.01, 
                 "2050 clamped to same as 2030");
             assertEquals(r2050.fTotalNt, r2030.fTotalNt, 1.0, 
@@ -333,9 +333,9 @@ class IGRFModelTest {
         @DisplayName("Interpolation between epochs")
         void interpolation() {
             // 2022.5 should be interpolated between 2020 and 2025
-            Result r2020 = IGRFModel.compute(40.7, -74.0, 0, epochMillis(2020, 1, 1));
-            Result r2025 = IGRFModel.compute(40.7, -74.0, 0, epochMillis(2025, 1, 1));
-            Result r2022 = IGRFModel.compute(40.7, -74.0, 0, epochMillis(2022, 7, 1));
+            Field r2020 = IGRFModel.compute(40.7, -74.0, 0, epochMillis(2020, 1, 1));
+            Field r2025 = IGRFModel.compute(40.7, -74.0, 0, epochMillis(2025, 1, 1));
+            Field r2022 = IGRFModel.compute(40.7, -74.0, 0, epochMillis(2022, 7, 1));
 
             // 2022 should be between 2020 and 2025
             assertTrue(
@@ -362,7 +362,7 @@ class IGRFModelTest {
                         new Thread(
                                 () -> {
                                     for (int j = 0; j < iterationsPerThread; j++) {
-                                        Result r =
+                                        Field r =
                                                 IGRFModel.compute(
                                                         40.7 + threadId * 0.1,
                                                         -74.0,
@@ -379,8 +379,8 @@ class IGRFModelTest {
             }
 
             // All threads should complete successfully
-            for (double result : results) {
-                assertFinite(result, "Thread result");
+            for (double Field : results) {
+                assertFinite(Field, "Thread Field");
             }
         }
 
@@ -393,7 +393,7 @@ class IGRFModelTest {
             Thread t1 =
                     new Thread(
                             () -> {
-                                Result r =
+                                Field r =
                                         IGRFModel.compute(
                                                 40.7, -74.0, 0, epochMillis(2025, 1, 1));
                                 thread1Result[0] = r.declinationDeg;
@@ -402,7 +402,7 @@ class IGRFModelTest {
             Thread t2 =
                     new Thread(
                             () -> {
-                                Result r =
+                                Field r =
                                         IGRFModel.compute(
                                                 51.5, 0, 0, epochMillis(2025, 1, 1));
                                 thread2Result[0] = r.declinationDeg;
@@ -478,12 +478,12 @@ class IGRFModelTest {
             long time = epochMillis(2025, 1, 1);
             
             // Exact pole (should be clamped internally)
-            Result pole = IGRFModel.compute(90.0, 0, 0, time);
+            Field pole = IGRFModel.compute(90.0, 0, 0, time);
             assertFinite(pole.fTotalNt, "Exact pole");
             
             // Large longitude (> 360)
-            Result r1 = IGRFModel.compute(40.7, 45, 0, time);
-            Result r2 = IGRFModel.compute(40.7, 405, 0, time); // 45 + 360
+            Field r1 = IGRFModel.compute(40.7, 45, 0, time);
+            Field r2 = IGRFModel.compute(40.7, 405, 0, time); // 45 + 360
             assertEquals(r1.declinationDeg, r2.declinationDeg, 0.1, "Longitude modulo 360");
         }
 
@@ -497,7 +497,7 @@ class IGRFModelTest {
             });
 
             // Should still work after multiple preloads
-            Result r = IGRFModel.compute(40.7, -74.0, 0, epochMillis(2025, 1, 1));
+            Field r = IGRFModel.compute(40.7, -74.0, 0, epochMillis(2025, 1, 1));
             assertFinite(r.declinationDeg, "Still works after multiple preloads");
         }
         
@@ -505,7 +505,7 @@ class IGRFModelTest {
         @DisplayName("Date at exact first epoch boundary")
         void exactFirstEpochBoundary() {
             // Test at 1900 (first epoch) - should use first epoch coefficients
-            Result r1900 = IGRFModel.compute(40.7, -74.0, 0, epochMillis(1900, 1, 1));
+            Field r1900 = IGRFModel.compute(40.7, -74.0, 0, epochMillis(1900, 1, 1));
             
             assertNotNull(r1900);
             assertFinite(r1900.declinationDeg, "First epoch declination");
@@ -520,10 +520,10 @@ class IGRFModelTest {
         @DisplayName("Very old date before first epoch: 1850")
         void beforeModelRange() {
             // Date before 1900 (first epoch) - should use earliest coefficients
-            Result r1850 = IGRFModel.compute(51.5, 0, 0, epochMillis(1850, 1, 1));
-            Result r1900 = IGRFModel.compute(51.5, 0, 0, epochMillis(1900, 1, 1));
+            Field r1850 = IGRFModel.compute(51.5, 0, 0, epochMillis(1850, 1, 1));
+            Field r1900 = IGRFModel.compute(51.5, 0, 0, epochMillis(1900, 1, 1));
             
-            // Should give same result (using first epoch coefficients)
+            // Should give same Field (using first epoch coefficients)
             assertEquals(r1850.declinationDeg, r1900.declinationDeg, 0.01, 
                 "Pre-1900 uses first epoch");
             assertEquals(r1850.fTotalNt, r1900.fTotalNt, 1.0, 
