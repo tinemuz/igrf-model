@@ -203,7 +203,7 @@ public final class IGRFModel {
         ensureLoaded();
         
         // Clamp latitude to avoid numerical issues at poles
-        float latDeg = (float) Math.clamp(gdLatitudeDeg, -90.0 + 1e-5, 90.0 - 1e-5);
+        float latDeg = (float) Math.max(-90.0 + 1e-5, Math.min(gdLatitudeDeg, 90.0 - 1e-5));
         float lonDeg = (float) gdLongitudeDeg;
         
         // Convert WGS-84 geodetic to geocentric coordinates
@@ -404,7 +404,7 @@ public final class IGRFModel {
         }
         try {
             years.add(Double.parseDouble(token));
-        } catch (NumberFormatException _) {
+        } catch (NumberFormatException e) {
             // Intentionally ignore non-numeric tokens in header
         }
     }
