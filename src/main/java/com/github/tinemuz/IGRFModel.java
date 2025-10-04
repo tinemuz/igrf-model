@@ -135,35 +135,6 @@ public final class IGRFModel {
     private IGRFModel() {}
 
     /**
-     * Convenience method that returns only the magnetic declination at a given location and time.
-     * <p>
-     * Equivalent to {@link #compute(double, double, double, long)} followed by reading {@link Result#declinationDeg}.
-     * </p>
-     *
-     * <h3>Parameters</h3>
-     * <ul>
-     *   <li><b>latDeg</b> — geodetic latitude in degrees (north positive). Values are internally clamped to
-     *       (-90°, +90°) by ±1e‑5 degrees to avoid numerical singularities at the poles.</li>
-     *   <li><b>lonDeg</b> — geodetic longitude in degrees (east positive). Any real value is accepted; typical range is [-180°, +180°) or [0°, 360°).</li>
-     *   <li><b>altitudeMeters</b> — altitude above mean sea level (WGS‑84), in meters. Negative values are allowed.</li>
-     *   <li><b>epochMillis</b> — UTC epoch time in milliseconds.</li>
-     * </ul>
-     *
-     * <h3>Returns</h3>
-     * <p>Declination in degrees east of north, in the range [-180°, +180°).</p>
-     *
-     * <h3>Exceptions</h3>
-     * <ul>
-     *   <li>{@link IllegalStateException} if the coefficient resource <code>igrfcoeffs.txt</code> is not found on the classpath.</li>
-     * </ul>
-     */
-    public static double declinationDeg(
-            double latDeg, double lonDeg, double altitudeMeters, long epochMillis) {
-        Result r = compute(latDeg, lonDeg, altitudeMeters, epochMillis);
-        return r.declinationDeg;
-    }
-
-    /**
      * Compute the geomagnetic field vector and common derived quantities at a geodetic location and time.
      * <p>
      * Results are returned in the local geodetic North-East-Down (NED) frame. Internally, inputs are converted to
@@ -368,8 +339,7 @@ public final class IGRFModel {
      *   <li>Allocates the calling thread’s workspace.</li>
      *   <li>Prints a once-only warning to stderr if the current time is more than 5 years beyond the last epoch.</li>
      * </ul>
-     * This method is optional; the first call to {@link #compute(double, double, double, long)} (or
-     * {@link #declinationDeg(double, double, double, long)}) will load lazily.
+     * This method is optional; the first call to {@link #compute(double, double, double, long)} will load lazily.
      */
     public static void preload() {
         ensureLoaded();

@@ -35,24 +35,6 @@ class IGRFModelTest {
     class CoreFunctionalityTests {
 
         @Test
-        @DisplayName("Declination-only method returns same value as full compute")
-        void declinationOnlyMatchesFullCompute() {
-            double lat = 40.7128;
-            double lon = -74.0060;
-            double alt = 100.0;
-            long time = epochMillis(2025, 1, 1);
-
-            double declinationOnly = IGRFModel.declinationDeg(lat, lon, alt, time);
-            Result full = IGRFModel.compute(lat, lon, alt, time);
-
-            assertEquals(
-                    declinationOnly,
-                    full.declinationDeg,
-                    0.001,
-                    "Declination-only should match full compute");
-        }
-
-        @Test
         @DisplayName("Result fields are finite and within valid ranges")
         void resultFieldsValid() {
             Result result = IGRFModel.compute(51.5074, -0.1278, 50, epochMillis(2025, 1, 1));
@@ -470,36 +452,19 @@ class IGRFModelTest {
 
             // Warmup thoroughly
             for (int i = 0; i < 2000; i++) {
-                IGRFModel.declinationDeg(40.7, -74.0, 100, time);
                 IGRFModel.compute(40.7, -74.0, 100, time);
             }
 
-            // Test that both methods are reasonably fast
-            long start1 = System.nanoTime();
-            for (int i = 0; i < 10000; i++) {
-                IGRFModel.declinationDeg(40.7, -74.0, 100, time);
-            }
-            long elapsed1 = System.nanoTime() - start1;
-            double avg1 = elapsed1 / 10000.0 / 1000.0;
-
-            long start2 = System.nanoTime();
+            // Test that compute is reasonably fast
+            long start = System.nanoTime();
             for (int i = 0; i < 10000; i++) {
                 IGRFModel.compute(40.7, -74.0, 100, time);
             }
-            long elapsed2 = System.nanoTime() - start2;
-            double avg2 = elapsed2 / 10000.0 / 1000.0;
+            long elapsed = System.nanoTime() - start;
+            double avgMicros = elapsed / 10000.0 / 1000.0;
 
-            // Both should be fast (< 100 μs per call)
-            assertTrue(avg1 < 100, "Declination-only < 100μs: " + avg1);
-            assertTrue(avg2 < 100, "Full compute < 100μs: " + avg2);
-
-            // Performance should be in similar ballpark (within 5x due to JIT variations)
-            double ratio = Math.max(avg1, avg2) / Math.min(avg1, avg2);
-            assertTrue(
-                    ratio < 5.0,
-                    String.format(
-                            "Performance similar: declination=%.2fμs, full=%.2fμs, ratio=%.2f",
-                            avg1, avg2, ratio));
+            // Should be fast (< 100 μs per call)
+            assertTrue(avgMicros < 100, "Compute < 100μs: " + avgMicros);
         }
     }
 

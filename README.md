@@ -32,7 +32,7 @@ implementation 'com.github.tinemuz:igrf-model:1.0-SNAPSHOT'
 
 ### Quick Start
 
-The library provides two primary methods: `declinationDeg()` for simple magnetic variation calculations and `compute()` for full field data.
+The library provides the `compute()` method for full magnetic field calculations.
 
 **Initialize at startup:**
 ```java
@@ -44,12 +44,14 @@ IGRFModel.preload(); // Recommended to call at application startup
 Use this for converting between true and magnetic headings:
 
 ```java
-double declination = IGRFModel.declinationDeg(
+Result field = IGRFModel.compute(
     40.7128,                    // Latitude (degrees, north positive)
     -74.0060,                   // Longitude (degrees, east positive)
     100.0,                      // Altitude (meters above MSL)
     System.currentTimeMillis()  // Time (epoch milliseconds UTC)
 );
+
+double declination = field.declinationDeg;
 
 // Convert headings
 double magneticHeading = trueHeading - declination;
@@ -77,7 +79,8 @@ field.inclinationDeg // Inclination (dip angle)
 
 **Aviation - Flight Planning:**
 ```java
-double variation = IGRFModel.declinationDeg(lat, lon, cruiseAlt, departureTime);
+Result field = IGRFModel.compute(lat, lon, cruiseAlt, departureTime);
+double variation = field.declinationDeg;
 double magneticCourse = trueCourse - variation;
 ```
 
@@ -107,11 +110,6 @@ calibrator.setReference(field.xNorthNt, field.yEastNt, field.zDownNt);
 - Pre-loads IGRF coefficients from classpath
 - Recommended to call at application startup
 - Validates model and prints warning if time is >5 years beyond latest epoch
-
-**`IGRFModel.declinationDeg(latitude, longitude, altitude, epochMillis)`**
-- Returns magnetic declination in degrees (east positive, west negative)
-- Fastest method when only declination is needed
-- Range: [-180°, +180°)
 
 **`IGRFModel.compute(latitude, longitude, altitude, epochMillis)`**
 - Returns `Result` object with all magnetic field components
