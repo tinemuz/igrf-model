@@ -29,7 +29,7 @@ implementation 'io.github.tinemuz:igrf-model:0.0.1-SNAPSHOT'
 > <repositories>
 >     <repository>
 >         <id>sonatype-snapshots</id>
->         <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
+>         <url>https://central.sonatype.com/repository/maven-snapshots/</url>
 >         <snapshots>
 >             <enabled>true</enabled>
 >         </snapshots>
