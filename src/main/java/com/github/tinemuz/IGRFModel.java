@@ -369,9 +369,12 @@ public final class IGRFModel {
                 System.arraycopy(row, 3, hCoeffs[n][m], 0, epochCount);
                 if (evals > epochCount) svH[n][m] = row[3 + epochCount];
             }
-        } catch (IOException | NumberFormatException e) {
-            log.error("Failed to read or parse IGRF coefficients file", e);
-            throw new IllegalStateException("Failed to read or parse IGRF coefficients file", e);
+        } catch (IOException e) {
+            log.error("Failed to read IGRF coefficients file", e);
+            throw new IllegalStateException("Failed to read IGRF coefficients file", e);
+        } catch (Exception e) {
+            log.error("Failed to parse IGRF coefficients file", e);
+            throw new IllegalStateException("Failed to parse IGRF coefficients file", e);
         }
     }
 
