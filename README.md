@@ -15,13 +15,13 @@ No need to source and maintain your own coefficient files.
 <dependency>
     <groupId>io.github.tinemuz</groupId>
     <artifactId>igrf-model</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
 </dependency>
 ```
 
 ### Gradle
 ```gradle
-implementation 'io.github.tinemuz:igrf-model:0.0.1-SNAPSHOT'
+implementation 'io.github.tinemuz:igrf-model:1.0.0-SNAPSHOT'
 ```
 
 > **Note:** Snapshot versions are published automatically to Maven Central snapshots repository. For snapshots, add the repository:
@@ -147,4 +147,4 @@ Contributions are welcome. Please ensure code follows existing conventions, all 
 
 ---
 
-**Version 0.0.1-SNAPSHOT** - IGRF-14 model support (epochs 1900-2030)
+**Version 1.0.0-SNAPSHOT** - IGRF-14 model support (epochs 1900-2030)
