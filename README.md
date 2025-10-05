@@ -106,6 +106,25 @@ where $a = 6371.2$ km (reference Earth radius), $g_n^m$ and $h_n^m$ are Schmidt 
 
 The implementation converts geodetic (WGS-84) to geocentric coordinates, uses linear interpolation between IGRF epochs with secular variation extrapolation up to 5 years beyond the latest epoch, and employs stable recurrence relations for associated Legendre functions. Performance is optimized through thread-local workspace caching and zero-allocation design.
 
+## Logging
+
+The library uses SLF4J for logging. Logging is optional and the library will work silently if no SLF4J binding is present. The library logs:
+
+- **Warnings** when calculations are performed for dates more than 5 years beyond the latest IGRF epoch (coefficients should be updated)
+- **Errors** when the coefficient file cannot be found, read, or parsed
+
+To enable logging, add an SLF4J binding to your project like Logback, Log4j2, or slf4j-simple:
+
+```xml
+<dependency>
+    <groupId>ch.qos.logback</groupId>
+    <artifactId>logback-classic</artifactId>
+    <version>1.4.11</version>
+</dependency>
+```
+
+If you copy the source files directly into your project, you'll also need to add the SLF4J API dependency, or remove the logger import and logging statements.
+
 ## Coefficients
 
 The library includes embedded IGRF-14 coefficients in the JAR, covering epochs 1900-2030. This is the main benefit of using this library - users don't need to source, manage, or update coefficient files separately. Everything works out of the box. When new IGRF models are released, simply update the library version to get the latest coefficients.

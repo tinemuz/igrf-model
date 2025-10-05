@@ -7,6 +7,9 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Allocation-free IGRF (International Geomagnetic Reference Field) evaluator using spherical 
  * harmonic expansion to degree 13. Computes Earth's magnetic field vector and derived quantities
@@ -42,6 +45,7 @@ import java.util.List;
  * Call {@link #preload()} at startup to force loading and validate time range.
  */
 public final class IGRFModel {
+    private static final Logger log = LoggerFactory.getLogger(IGRFModel.class);
     // WGS84 constants (km) and IAU reference radius (km)
     private static final float A_KM = 6378.137f;
     private static final float B_KM = 6356.7523142f;
@@ -193,12 +197,12 @@ public final class IGRFModel {
                 synchronized (IGRFModel.class) {
                     if (!warnedFutureBeyond5Years) {
                         warnedFutureBeyond5Years = true;
-                        // Intentional diagnostic output - this library has no logger dependency
-                        System.err.printf( // NOSONAR
-                                "IGRFModel warning: requested time is %.2f years beyond latest"
-                                    + " epoch %.1f; results are clamped to %.1f. Consider updating"
-                                    + " igrfcoeffs.txt.%n",
-                                yearsAhead, (float) lastEpoch, (float) (lastEpoch + 5.0));
+                        log.warn(
+                                "Requested time is {} years beyond latest epoch {}; "
+                                    + "results are clamped to {}. Consider updating igrfcoeffs.txt",
+                                String.format("%.2f", yearsAhead), 
+                                String.format("%.1f", lastEpoch), 
+                                String.format("%.1f", lastEpoch + 5.0));
                     }
                 }
             }
@@ -259,12 +263,12 @@ public final class IGRFModel {
                 synchronized (IGRFModel.class) {
                     if (!warnedFutureBeyond5Years) {
                         warnedFutureBeyond5Years = true;
-                        // Intentional diagnostic output - this library has no logger dependency
-                        System.err.printf( // NOSONAR
-                                "IGRFModel warning: current time is %.2f years beyond latest epoch"
-                                        + " %.1f; results will clamp to %.1f. Consider updating"
-                                        + " igrfcoeffs.txt.%n",
-                                yearsAhead, (float) lastEpoch, (float) (lastEpoch + 5.0));
+                        log.warn(
+                                "Current time is {} years beyond latest epoch {}; "
+                                    + "results will clamp to {}. Consider updating igrfcoeffs.txt",
+                                String.format("%.2f", yearsAhead), 
+                                String.format("%.1f", lastEpoch), 
+                                String.format("%.1f", lastEpoch + 5.0));
                     }
                 }
             }
@@ -294,9 +298,11 @@ public final class IGRFModel {
     private static void loadCoefficientsFromResource() {
         // Prefer version-agnostic resource, fall back to legacy name to preserve compatibility
         InputStream in = IGRFModel.class.getClassLoader().getResourceAsStream("igrfcoeffs.txt");
-        if (in == null)
+        if (in == null) {
+            log.error("IGRF coefficients file 'igrfcoeffs.txt' not found on classpath");
             throw new IllegalStateException(
                     "IGRF coefficients file 'igrfcoeffs.txt' not found on classpath");
+        }
         try (BufferedReader br = new BufferedReader(new InputStreamReader(in))) {
             List<Double> years = new ArrayList<>();
             List<float[]> gRows = new ArrayList<>();
@@ -363,8 +369,9 @@ public final class IGRFModel {
                 System.arraycopy(row, 3, hCoeffs[n][m], 0, epochCount);
                 if (evals > epochCount) svH[n][m] = row[3 + epochCount];
             }
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to read IGRF coefficients file", e);
+        } catch (IOException | NumberFormatException e) {
+            log.error("Failed to read or parse IGRF coefficients file", e);
+            throw new IllegalStateException("Failed to read or parse IGRF coefficients file", e);
         }
     }
 
