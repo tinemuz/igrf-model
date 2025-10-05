@@ -1,0 +1,52 @@
+IGRF Model
+Copyright (c) 2025 tinemuz
+
+This software contains derivative works based on the following sources:
+
+================================================================================
+
+1. GeomagneticField.java from The Android Open Source Project
+   Copyright (C) 2009 The Android Open Source Project
+   
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+   
+        http://www.apache.org/licenses/LICENSE-2.0
+   
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+================================================================================
+
+2. TSAGeoMag.java from Los Alamos National Laboratory
+   
+   PUBLIC DOMAIN NOTICE
+   
+   This program was prepared by Los Alamos National Security, LLC
+   at Los Alamos National Laboratory (LANL) under contract No.
+   DE-AC52-06NA25396 with the U.S. Department of Energy (DOE).
+   All rights in the program are reserved by the DOE and
+   Los Alamos National Security, LLC. Permission is granted to the
+   public to copy and use this software without charge,
+   provided that this Notice and any statement of authorship are
+   reproduced on all copies. Neither the U.S. Government nor LANS
+   makes any warranty, express or implied, or assumes any liability
+   or responsibility for the use of this software.
+   
+   License Statement from the NOAA:
+   The WMM source code is in the public domain and not licensed or
+   under copyright. The information and software may be used freely
+   by the public. As required by 17 U.S.C. 403, third parties producing
+   copyrighted works consisting predominantly of the material produced
+   by U.S. government agencies must provide notice with such work(s)
+   identifying the U.S. Government material incorporated and stating
+   that such material is not subject to copyright protection.
+   
+   Originally ported to Java by Tim Walker (tim@acusat.com)
+   Original source available at http://www.ngdc.noaa.gov/seg/potfld/DoDWMM.html
+
+================================================================================

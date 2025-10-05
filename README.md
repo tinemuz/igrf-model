@@ -111,9 +111,9 @@ The library includes embedded IGRF-14 coefficients in the JAR, covering epochs 1
 
 ## License
 
-This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-This library was adapted from TSAGeoMag.java (public domain, Los Alamos National Laboratory) and GeomagneticField.java (Apache License 2.0, Copyright 2009 The Android Open Source Project).
+This library contains derivative works. See the [NOTICE](NOTICE) file for attribution and original license information for TSAGeoMag.java (public domain, Los Alamos National Laboratory) and GeomagneticField.java (Apache License 2.0, Copyright 2009 The Android Open Source Project).
 
 ## Contributing
 
