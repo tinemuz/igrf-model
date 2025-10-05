@@ -37,6 +37,13 @@ implementation 'io.github.tinemuz:igrf-model:0.0.1-SNAPSHOT'
 > </repositories>
 > ```
 
+### Copy Into Your Project
+
+If you prefer not to add a dependency, you can copy the source files directly into your project. The library consists of just two files:
+
+- `IGRFModel.java` - The main computation class
+- `igrfcoeffs.txt` - IGRF-14 coefficients (must be placed in your resources' folder)
+
 ## Example
 
 It is recommended to preload the model at application startup:
