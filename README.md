@@ -2,11 +2,10 @@
 
 A lightweight Java library for calculating Earth's magnetic field using the International Geomagnetic Reference Field (IGRF) model. The IGRF is a model of the Earth's main magnetic field that is updated every 5 years. This library provides accurate magnetic declination, inclination, and field intensity calculations essential for navigation applications.
 
-The library includes embedded IGRF-14 coefficients (epochs 1900-2030) in the JAR. The implementation uses spherical harmonic expansion to degree and order 13. It has no external dependencies and supports WGS-84 geodetic coordinates.
+The library includes embedded IGRF-14 coefficients (epochs 1900-2030) in the JAR. The implementation uses spherical harmonic expansion to degree and order 13.
 
 No need to source and maintain your own coefficient files.
 
-> Note that this library uses IGRF-14 coefficients (epochs 1900-2030)
 
 ## Install
 
@@ -23,19 +22,6 @@ No need to source and maintain your own coefficient files.
 ```gradle
 implementation 'io.github.tinemuz:igrf-model:1.0.0'
 ```
-
-> **Note:** Snapshot versions are published automatically to Maven Central snapshots repository. For snapshots, add the repository:
-> ```xml
-> <repositories>
->     <repository>
->         <id>sonatype-snapshots</id>
->         <url>https://central.sonatype.com/repository/maven-snapshots/</url>
->         <snapshots>
->             <enabled>true</enabled>
->         </snapshots>
->     </repository>
-> </repositories>
-> ```
 
 ### Copy Into Your Project
 
@@ -57,7 +43,6 @@ Magnetic field values depend on time and position. Position is specified using W
 ```java
 Field field = IGRFModel.compute(
     40.7128,                    // Latitude (degrees, north positive)
-    -74.0060,                   // Longitude (degrees, east positive)
     100.0,                      // Altitude (meters above MSL)
     System.currentTimeMillis()  // Time (epoch milliseconds UTC)
 );
