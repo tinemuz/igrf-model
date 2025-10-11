@@ -1,5 +1,7 @@
 # IGRF Model Library
 
+[![Sonatype Central](https://maven-badges.sml.io/sonatype-central/io.github.tinemuz/igrf-model/badge.png?style=flat)](https://search.maven.org/artifact/io.github.tinemuz/igrf-model)
+
 A lightweight Java library for calculating Earth's magnetic field using the International Geomagnetic Reference Field (IGRF) model for a given location and time.
 
 The library includes embedded IGRF-14 coefficients (epochs 1900-2030). It has no external dependencies (only optional `slf4j-api` for logging) and supports WGS-84 geodetic coordinates.
