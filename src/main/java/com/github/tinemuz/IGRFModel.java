@@ -38,42 +38,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * IGRF (International Geomagnetic Reference Field) evaluator using spherical
- * harmonic expansion to degree 13. Computes Earth's magnetic field vector and derived quantities
- * (declination, inclination, intensity) at any geodetic location and time.
- * 
- * <p><b>Usage:</b>
- * <pre>
- * Field field = IGRFModel.compute(latitude, longitude, altitude, epochMillis);
- * double declination = field.declinationDeg;  // magnetic variation
- * </pre>
+ * IGRF magnetic model evaluator.
  *
- * <p><b>Coordinates and Units:</b>
- * <ul>
- *   <li><b>Input:</b> WGS-84 lat/lon (degrees), altitude (meters MSL), time (epoch millis UTC)</li>
- *   <li><b>Output:</b> NED frame (X=north, Y=east, Z=down) in nanoteslas; angles in degrees</li>
- *   <li><b>Declination:</b> [-180°, +180°) east of true north</li>
- * </ul>
+ * <p>This class evaluates the Earth's magnetic field using the published IGRF
+ * spherical harmonic coefficients (degrees up to 13). It provides a single
+ * main entry point, {@link #compute}, which returns a small immutable
+ * {@link Field} object containing the field vector and common derived
+ * quantities (declination, inclination, intensities).</p>
  *
- * <p><b>Time Handling:</b>
- * <ul>
- *   <li>Between epochs: linear interpolation of coefficients</li>
- *   <li>Beyond last epoch: secular variation applied (clamped at +5 years, warns if exceeded)</li>
- * </ul>
- *
- * <p><b>Performance:</b>
- * <ul>
- *   <li>Zero allocation after first call per thread</li>
- *   <li>Thread-safe via ThreadLocal (no locks, no contention)</li>
- *   <li>Typical: 5-15 μs per evaluation</li>
- * </ul>
- *
- * <p><b>Data:</b> Loads IGRF coefficients from classpath resource {@code igrfcoeffs.txt}.
- * Call {@link #preload()} at startup to force loading and validate time range.
+ * <p>Inputs are standard WGS-84 geodetic latitude/longitude (degrees),
+ * altitude in meters above mean sea level, and time as UTC epoch
+ * milliseconds. Coefficients are loaded from the classpath resource
+ * <code>igrfcoeffs.txt</code>. Call {@link #preload()} once at startup.</p>
  */
 public final class IGRFModel {
     private static final Logger log = LoggerFactory.getLogger(IGRFModel.class);
-    // WGS84 constants (km) and IAU reference radius (km)
+    // WGS-84 ellipsoid parameters (km) and IAU reference radius (km)
     private static final float A_KM = 6378.137f;
     private static final float B_KM = 6356.7523142f;
     private static final float RE_KM = 6371.2f;
@@ -82,61 +62,67 @@ public final class IGRFModel {
     private static final double MS_PER_YEAR_365 = 365.0 * 24.0 * 60.0 * 60.0 * 1000.0;
     
     /**
-     * Thread-local workspace for allocation-free computation.
-     * Intentionally never removed (S5164 suppressed) - this is a performance optimization
-     * where the workspace persists for the lifetime of the thread to avoid repeated allocations.
-     * Each workspace is ~20KB and provides significant performance benefits in real-time systems.
+     * Per-thread scratch space so computations avoid frequent allocations.
+     * Keeping a small workspace object on each thread improves speed for
+     * repeated evaluations.
      */
     @SuppressWarnings("squid:S5164")
     private static final ThreadLocal<Workspace> WORK = ThreadLocal.withInitial(Workspace::new);
     private static volatile boolean loaded = false;
-    private static double[] epochs;
-    private static float[][][] gCoeffs;
-    private static float[][][] hCoeffs;
-    private static float[][] svG;
-    private static float[][] svH;
-    private static float baseYearAnchor;
-    private static long baseYearMillis;
+    private static double[] epochs; // available coefficient epochs (decimal years)
+    private static float[][][] gCoeffs; // g[n][m][epochIndex]
+    private static float[][][] hCoeffs; // h[n][m][epochIndex]
+    private static float[][] svG; // secular variation for g (degrees <= 8)
+    private static float[][] svH; // secular variation for h (degrees <= 8)
+    private static float baseYearAnchor; // anchor year for decimal-year math
+    private static long baseYearMillis; // millis for Jan 1 of anchor year
     private static volatile boolean warnedFutureBeyond5Years = false;
 
     private IGRFModel() {}
 
     /**
-     * Compute the geomagnetic field at a location and time.
+     * Evaluate the magnetic field at a WGS-84 geodetic location and time.
      *
-     * @param gdLatitudeDeg geodetic latitude in degrees [-90, +90] (north positive)
-     * @param gdLongitudeDeg geodetic longitude in degrees (east positive)
-     * @param altitudeMeters altitude above MSL in meters (WGS-84)
-     * @param epochMillis UTC time in epoch milliseconds
-     * @return {@link Field} with field components (nT), declination, and inclination (degrees)
-     * @throws IllegalStateException if coefficient file not found on classpath
+     * Returns a {@link Field} with components in nanoteslas and angles in
+     * degrees. The returned components are in the NED (north, east, down)
+     * convention.
+     *
+     * This is the single public API most callers need.
+     *
+     * @param gdLatitudeDeg  geodetic latitude (degrees, north positive)
+     * @param gdLongitudeDeg geodetic longitude (degrees, east positive)
+     * @param altitudeMeters altitude above mean sea level (meters)
+     * @param epochMillis    UTC time as epoch milliseconds
+     * @return Field carrying X (north), Y (east), Z (down), H (horizontal),
+     *         F (total), declination and inclination
+     * @throws IllegalStateException if coefficient data cannot be loaded
      */
     public static Field compute(
             double gdLatitudeDeg, double gdLongitudeDeg, double altitudeMeters, long epochMillis) {
         ensureLoaded();
         
-        // Clamp latitude to avoid numerical issues at poles
+        // Keep latitude slightly inside [-90, 90] to avoid numeric issues at poles
         float latDeg = (float) Math.max(-90.0 + 1e-5, Math.min(gdLatitudeDeg, 90.0 - 1e-5));
         float lonDeg = (float) gdLongitudeDeg;
         
-        // Convert WGS-84 geodetic to geocentric coordinates
+        // Convert geodetic coordinates (lat/lon/alt) to geocentric (radians, km)
         Geocentric gc = geodeticToGeocentric(latDeg, lonDeg, (float) (altitudeMeters / 1000.0));
         
-        // Convert epoch time to decimal year for IGRF coefficient interpolation
+        // Convert time to a decimal year anchored at the last epoch in the file
         float decimalYear =
                 baseYearAnchor + (float) ((epochMillis - baseYearMillis) / MS_PER_YEAR_365);
         
-        // Get thread-local workspace (cache of pre-computed values)
+        // Thread-local workspace (pre-allocated arrays we reuse)
         Workspace ws = WORK.get();
 
-        // === STEP 1: Cache Legendre functions for this colatitude ===
+        // STEP 1: If colatitude changed, recompute Legendre functions and derivatives
         float theta = (float) (Math.PI / 2.0 - gc.latRad);
         if (theta != ws.lastTheta) {
             fillLegendre(ws, theta);
             ws.lastTheta = theta;
         }
         
-        // === STEP 2: Cache (a/r)^(n+1) powers for this radius ===
+        // STEP 2: If radius changed, recompute powers (a/r)^(n+1)
         if (gc.radiusKm != ws.lastRadiusKm) {
             ws.relPow[0] = 1.0f;
             ws.relPow[1] = RE_KM / gc.radiusKm;
@@ -145,7 +131,7 @@ public final class IGRFModel {
             ws.lastRadiusKm = gc.radiusKm;
         }
         
-        // === STEP 3: Cache sin(m*lon) and cos(m*lon) series for this longitude ===
+        // STEP 3: If longitude changed, update sin(m*lon)/cos(m*lon) series
         if (gc.lonRad != ws.lastLonRad) {
             float s = (float) Math.sin(gc.lonRad);
             float c = (float) Math.cos(gc.lonRad);
@@ -153,7 +139,7 @@ public final class IGRFModel {
             ws.cosMLon[0] = 1.0f;
             ws.sinMLon[1] = s;
             ws.cosMLon[1] = c;
-            // Use angle addition formulas to avoid repeated trig calls
+            // Build the series using angle addition to avoid repeated trig calls
             for (int m = 2; m <= MAX_N; m++) {
                 float sp = ws.sinMLon[m - 1];
                 float cp = ws.cosMLon[m - 1];
@@ -163,46 +149,44 @@ public final class IGRFModel {
             ws.lastLonRad = gc.lonRad;
         }
         
-        // Pre-compute 1/cos(lat) for east component calculation
+        // Precompute 1/cos(lat) used for east component (guarded by lat clamp above)
         float invCosLat = 1.0f / (float) Math.cos(gc.latRad);
         final int E = epochs.length;
         final double lastEpoch = epochs[E - 1];
         
-        // Initialize field components in geocentric frame
-        float gcX = 0f;  // Colatitude component (dV/dθ)
-        float gcY = 0f;  // Longitude component (dV/dφ)
-        float gcZ = 0f;  // Radial component (dV/dr)
-        
-        // === STEP 4: Evaluate spherical harmonic expansion with time-dependent coefficients ===
-        
-        // Case 1: Before first epoch - use earliest coefficients
+        // Accumulate geocentric components (these are gradients of the potential)
+        float gcX = 0f;  // component along colatitude (θ)
+        float gcY = 0f;  // component along longitude (φ)
+        float gcZ = 0f;  // radial component (r)
+
+        // STEP 4: Evaluate spherical harmonic sum. Coefficients depend on time.
+
+        // Case A: Requested time is before the earliest epoch — use first column
         if (decimalYear <= epochs[0]) {
             for (int n = 1; n <= MAX_N; n++) {
                 float rn = ws.relPow[n + 2];  // (a/r)^(n+1)
-                float[] pS = ws.ps[n];         // Schmidt-normalized Legendre P_n^m
-                float[] dpS = ws.pds[n];       // Derivative dP_n^m/dθ
+                float[] pS = ws.ps[n];        // Schmidt-normalized P_n^m
+                float[] dpS = ws.pds[n];      // derivative dP_n^m/dθ
                 for (int m = 0; m <= n; m++) {
                     float gnm = gCoeffs[n][m][0];
                     float hnm = hCoeffs[n][m][0];
                     float a = gnm * ws.cosMLon[m] + hnm * ws.sinMLon[m];
                     float b = gnm * ws.sinMLon[m] - hnm * ws.cosMLon[m];
-                    gcX += rn * a * dpS[m];  // B_θ contribution
-                    if (m != 0) gcY += rn * m * b * pS[m] * invCosLat;  // B_φ contribution
-                    gcZ -= rn * (n + 1) * a * pS[m];  // B_r contribution (negative gradient)
+                    gcX += rn * a * dpS[m];
+                    if (m != 0) gcY += rn * m * b * pS[m] * invCosLat;
+                    gcZ -= rn * (n + 1) * a * pS[m];
                 }
             }
         } else if (decimalYear <= lastEpoch) {
-            // Case 2: Between epochs - linear interpolation
+            // Case B: Between epochs — linearly interpolate coefficients between nearest epochs
             int hi = upperBound(epochs, decimalYear);
             int lo = hi - 1;
-            // Interpolation parameter t ∈ [0, 1]
             float t = (float) ((decimalYear - epochs[lo]) / (epochs[hi] - epochs[lo]));
             for (int n = 1; n <= MAX_N; n++) {
                 float rn = ws.relPow[n + 2];
                 float[] pS = ws.ps[n];
                 float[] dpS = ws.pds[n];
                 for (int m = 0; m <= n; m++) {
-                    // Linear interpolation: coeff = coeff0 + t*(coeff1 - coeff0)
                     float g0 = gCoeffs[n][m][lo];
                     float g1 = gCoeffs[n][m][hi];
                     float h0 = hCoeffs[n][m][lo];
@@ -217,9 +201,10 @@ public final class IGRFModel {
                 }
             }
         } else {
-            // Case 3: Beyond last epoch - apply secular variation (SV) up to +5 years
+            // Case C: After the last epoch — use last epoch plus secular variation (SV)
+            // SV is only published for degrees up to 8, and we clamp extrapolation to 5 years
             float yearsAhead = (float) (decimalYear - lastEpoch);
-            float dt = yearsAhead > 5.0f ? 5.0f : yearsAhead;  // Clamp to 5 years
+            float dt = yearsAhead > 5.0f ? 5.0f : yearsAhead;  // clamp to max +5 years
             if (yearsAhead > 5.0f && !warnedFutureBeyond5Years) {
                 synchronized (IGRFModel.class) {
                     if (!warnedFutureBeyond5Years) {
@@ -237,12 +222,10 @@ public final class IGRFModel {
                 float rn = ws.relPow[n + 2];
                 float[] pS = ws.ps[n];
                 float[] dpS = ws.pds[n];
-                // SV is only provided for degrees n ≤ 8
-                boolean useSv = n <= 8;
+                boolean useSv = n <= 8; // SV only available for lower degrees
                 for (int m = 0; m <= n; m++) {
                     float baseG = gCoeffs[n][m][E - 1];
                     float baseH = hCoeffs[n][m][E - 1];
-                    // Apply secular variation: coeff = baseCoeff + dt*SV
                     float gnm = useSv ? baseG + dt * svG[n][m] : baseG;
                     float hnm = useSv ? baseH + dt * svH[n][m] : baseH;
                     float a = gnm * ws.cosMLon[m] + hnm * ws.sinMLon[m];
@@ -254,19 +237,22 @@ public final class IGRFModel {
             }
         }
         
-        // === STEP 5: Rotate from geocentric to geodetic NED frame ===
-        // Account for the difference between geodetic and geocentric latitude
+        // STEP 5: Rotate geocentric components to geodetic NED frame.
+        // The geodetic latitude differs slightly from geocentric latitude;
+        // apply that small rotation before returning north/east/down.
         float latDiff = (float) (Math.toRadians(latDeg) - gc.latRad);
         float cosLd = (float) Math.cos(latDiff);
         float sinLd = (float) Math.sin(latDiff);
-        // Rotation: X_ned = X_gc*cos(Δlat) + Z_gc*sin(Δlat)
-        //           Y_ned = Y_gc (unchanged)
-        //           Z_ned = -X_gc*sin(Δlat) + Z_gc*cos(Δlat)
+        // X_ned = X_gc*cos(Δlat) + Z_gc*sin(Δlat)
+        // Y_ned = Y_gc
+        // Z_ned = -X_gc*sin(Δlat) + Z_gc*cos(Δlat)
         return new Field(gcX * cosLd + gcZ * sinLd, gcY, -gcX * sinLd + gcZ * cosLd);
     }
 
     /**
-     * Ensure coefficients are loaded from the classpath resource. Called implicitly by public API and safe to call repeatedly.
+     * Ensure coefficient arrays are loaded. Safe to call repeatedly; the
+     *      * first caller will load data from the classpath. This method is synchronized
+     *      * to avoid race conditions during initialization.
      */
     private static synchronized void ensureLoaded() {
         if (loaded) return;
@@ -275,9 +261,8 @@ public final class IGRFModel {
     }
 
     /**
-     * Pre-load IGRF coefficients and validate time range. Optional - first call to 
-     * {@link #compute(double, double, double, long)} will load lazily. Recommended at 
-     * application startup to avoid loading delay and get early warning if model is outdated.
+     * Load coefficient data and prepare internal arrays. Call this at startup
+     * if you want to detect missing or invalid coefficient files early.
      */
     public static void preload() {
         ensureLoaded();
@@ -303,8 +288,8 @@ public final class IGRFModel {
     }
 
     /**
-     * Parse a year token and add it to the years list if it's a valid year (not "SV").
-     * Silently ignores non-numeric values that are not valid years.
+     * Parse a token from the header line and add it to the years list if it's
+     * a numeric epoch. Known non-year tokens like "SV" or "g/h" are ignored.
      */
     private static void parseYearToken(String token, List<Double> years) {
         if (token.equalsIgnoreCase("SV") || token.equalsIgnoreCase("g/h")) {
@@ -313,17 +298,18 @@ public final class IGRFModel {
         try {
             years.add(Double.parseDouble(token));
         } catch (NumberFormatException e) {
-            // Intentionally ignore non-numeric tokens in header
+            // Ignore tokens that aren't parseable as a year — header robustness
         }
     }
 
     /**
-     * Load and parse the coefficient table from the classpath resource <code>igrfcoeffs.txt</code>.
-     * <p>Format: header line starting with <code>g/h</code> then epoch years (and optional <code>SV</code>),
-     * followed by rows for <code>g</code> and <code>h</code> with degree n, order m, and values per epoch.</p>
+     * Load IGRF coefficient table from the classpath resource `igrfcoeffs.txt`.
+     * The file format is the standard table of g/h rows with columns for each
+     * epoch; the method fills gCoeffs, hCoeffs and optional secular variation
+     * arrays. Any problems reading or parsing the file will throw an
+     * IllegalStateException.
      */
     private static void loadCoefficientsFromResource() {
-        // Prefer version-agnostic resource, fall back to legacy name to preserve compatibility
         InputStream in = IGRFModel.class.getClassLoader().getResourceAsStream("igrfcoeffs.txt");
         if (in == null) {
             log.error("IGRF coefficients file 'igrfcoeffs.txt' not found on classpath");
@@ -338,7 +324,7 @@ public final class IGRFModel {
             String line;
             while ((line = br.readLine()) != null) {
                 line = line.trim();
-                if (line.isEmpty() || line.startsWith("#")) continue;
+                if (line.isEmpty() || line.startsWith("#")) continue; // skip blanks/comments
                 if (!headerParsed && line.startsWith("g/h")) {
                     String[] toks = line.split("\\s+");
                     years.clear();
@@ -349,9 +335,9 @@ public final class IGRFModel {
                     continue;
                 }
                 char kind = line.charAt(0);
-                if (kind != 'g' && kind != 'h') continue;
+                if (kind != 'g' && kind != 'h') continue; // only care about g/h data rows
                 String[] toks = line.split("\\s+");
-                if (toks.length < 4) continue;
+                if (toks.length < 4) continue; // malformed row
                 int n = Integer.parseInt(toks[1]);
                 int m = Integer.parseInt(toks[2]);
                 int startIdx = 3;
@@ -359,13 +345,13 @@ public final class IGRFModel {
                 float[] row = new float[3 + count];
                 row[0] = n;
                 row[1] = m;
-                row[2] = (kind == 'g') ? 1f : 2f;
+                row[2] = (kind == 'g') ? 1f : 2f; // marker: 1 for g, 2 for h
                 for (int i = 0; i < count; i++) row[3 + i] = Float.parseFloat(toks[startIdx + i]);
                 if (kind == 'g') gRows.add(row);
                 else hRows.add(row);
             }
             if (years.isEmpty()) {
-                // Derive epoch count from the first data row
+                // If header had no years, infer them from row length using a simple 5-year step
                 int dataEpochs = gRows.isEmpty() ? 0 : gRows.get(0).length - 3;
                 List<Double> defaultYears = new ArrayList<>();
                 for (int i = 0; i < dataEpochs; i++) {
@@ -406,23 +392,41 @@ public final class IGRFModel {
     }
 
     /**
-     * Milliseconds at UTC 00:00:00 on January 1 of a given year, using proleptic Gregorian calendar.
+     * Milliseconds at UTC 00:00:00 on January 1 of the given year.
+     * Uses a proleptic Gregorian calendar calculation.
      */
     private static long millisAtUtcJan1(int year) {
         return daysFrom1970ToYearStart(year) * 86_400_000L;
     }
 
+    /**
+     * Days from 1970-01-01 to the start of the given year.
+     *
+     * This uses a simple arithmetic calculation (365-day years plus leap days)
+     * and is intended for coarse epoch math (millisecond resolution for
+     * year boundaries) used by the model anchoring code.
+     */
     private static long daysFrom1970ToYearStart(int year) {
         if (year == 1970) return 0L;
         long diff = year - 1970L;
         return 365L * diff + (leapsBefore(year) - leapsBefore(1970));
     }
 
+    /**
+     * Count leap days strictly before the start of the given year.
+     *
+     * Uses the proleptic Gregorian rules: a year is a leap year if
+     * divisible by 4, except centuries not divisible by 400.
+     */
     private static long leapsBefore(int year) {
         long y = year - 1L;
         return y / 4L - y / 100L + y / 400L;
     }
 
+    /**
+     * Find the first index in a sorted array where arr[index] >= x.
+     * If x is larger than all entries, returns the last index.
+     */
     private static int upperBound(double[] arr, double x) {
         int lo = 0;
         int hi = arr.length - 1;
@@ -435,8 +439,8 @@ public final class IGRFModel {
     }
 
     /**
-     * Convert geodetic (WGS‑84) coordinates to geocentric latitude (radians), longitude (radians), and radius (km).
-     * <p>Uses standard ellipsoid relations with a = 6378.137 km and b = 6356.7523142 km.</p>
+     * Convert geodetic (WGS-84) lat/lon/alt into geocentric latitude (radians),
+     * longitude (radians), and radius (km). Altitude is expected in km.
      */
     private static Geocentric geodeticToGeocentric(float gdLatDeg, float gdLonDeg, float altKm) {
         float a2 = A_KM * A_KM;
@@ -458,7 +462,9 @@ public final class IGRFModel {
     }
 
     /**
-     * Fill Gauss‑normalized associated Legendre functions P and their θ‑derivatives, then apply Schmidt factors.
+     * Compute associated Legendre functions P_n^m(cos(theta)) and their
+     * theta-derivatives, then apply Schmidt quasi-normalization. Results are
+     * placed in the {@link Workspace} arrays used by the main evaluate loop.
      */
     private static void fillLegendre(Workspace ws, float thetaRad) {
         float cos = (float) Math.cos(thetaRad);
@@ -492,6 +498,10 @@ public final class IGRFModel {
         }
     }
 
+    /**
+     * Compute Schmidt quasi-normalization factors used to scale the associated
+     * Legendre functions. The input is inclusive maximum order (e.g. MAX_N+1).
+     */
     private static float[][] computeSchmidtQuasiNormFactors(int maxNInclusive) {
         float[][] s = new float[maxNInclusive][];
         s[0] = new float[] {1.0f};
@@ -507,8 +517,8 @@ public final class IGRFModel {
     }
 
     /**
-     * Immutable result of an IGRF evaluation containing magnetic field components and derived quantities.
-     * <p>All fields are in SI-derived units noted by their suffixes.</p>
+     * Small immutable result object returned by {@link #compute}.
+     * All linear quantities are in nanoteslas (nT); angles are degrees.
      */
     public static final class Field {
         /** X component (north) in nanoteslas (nT). */
@@ -543,8 +553,10 @@ public final class IGRFModel {
         }
     }
 
+    // Simple holder for geocentric lat/lon/radius
     private record Geocentric(float latRad, float lonRad, float radiusKm) {}
 
+    // Workspace: pre-allocated arrays used during a single evaluation
     private static final class Workspace {
         final float[][] p = new float[MAX_N + 1][MAX_N + 1];
         final float[][] pDeriv = new float[MAX_N + 1][MAX_N + 1];
