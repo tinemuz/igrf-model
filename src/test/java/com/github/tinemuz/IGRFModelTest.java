@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.github.tinemuz.IGRFModel.Field;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -46,11 +45,6 @@ class IGRFModelTest {
     private static final double INCLINATION_TOLERANCE = 2.0; // degrees (increased for real model)
     private static final double INTENSITY_TOLERANCE = 1000.0; // nT (increased for real model)
     private static final double COMPONENT_TOLERANCE = 150.0; // nT
-
-    @BeforeAll
-    static void setup() {
-        IGRFModel.preload();
-    }
 
     @Nested
     @DisplayName("Core Functionality Tests")
@@ -509,20 +503,6 @@ class IGRFModelTest {
             assertEquals(r1.declinationDeg, r2.declinationDeg, 0.1, "Longitude modulo 360");
         }
 
-        @Test
-        @DisplayName("Multiple preload calls are safe")
-        void multiplePreloadCalls() {
-            assertDoesNotThrow(() -> {
-                IGRFModel.preload();
-                IGRFModel.preload();
-                IGRFModel.preload();
-            });
-
-            // Should still work after multiple preloads
-            Field r = IGRFModel.compute(40.7, -74.0, 0, epochMillis(2025, 1, 1));
-            assertFinite(r.declinationDeg, "Still works after multiple preloads");
-        }
-        
         @Test
         @DisplayName("Date at exact first epoch boundary")
         void exactFirstEpochBoundary() {

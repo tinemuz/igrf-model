@@ -40,15 +40,7 @@ implementation 'io.github.tinemuz:igrf-model:1.0.0'
 If you prefer not to add a dependency, you can copy the source files directly into your project. You only need `IGRFModel.java` and the coefficient file `igrfcoeffs.txt` (place it in your resources' folder).
 
 ## Example
-
-It is recommended to preload the model at application startup:
-
-```java
-IGRFModel.preload(); // Call at application startup
-```
-
-The compute method returns a Field object containing all magnetic field components and derived quantities:
-
+Simply call `compute()`, coefficients load automatically on first use
 ```java
 Field field = IGRFModel.compute(latitude, longitude, altitude, epochMillis);
 

@@ -48,8 +48,8 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Inputs are standard WGS-84 geodetic latitude/longitude (degrees),
  * altitude in meters above mean sea level, and time as UTC epoch
- * milliseconds. Coefficients are loaded from the classpath resource
- * <code>igrfcoeffs.txt</code>. Call {@link #preload()} once at startup.</p>
+ * milliseconds. Coefficients are loaded automatically on first use from
+ * the classpath resource <code>igrfcoeffs.txt</code>.</p>
  */
 public final class IGRFModel {
     private static final Logger log = LoggerFactory.getLogger(IGRFModel.class);
@@ -251,55 +251,13 @@ public final class IGRFModel {
 
     /**
      * Ensure coefficient arrays are loaded. Safe to call repeatedly; the
-     *      * first caller will load data from the classpath. This method is synchronized
-     *      * to avoid race conditions during initialization.
+     * first caller will load data from the classpath. This method is synchronized
+     * to avoid race conditions during initialization.
      */
     private static synchronized void ensureLoaded() {
         if (loaded) return;
         loadCoefficientsFromResource();
         loaded = true;
-    }
-
-    /**
-     * Load coefficient data and prepare internal arrays. Call this at startup
-     * if you want to detect missing or invalid coefficient files early.
-     */
-    public static void preload() {
-        ensureLoaded();
-        if (!warnedFutureBeyond5Years && epochs != null && epochs.length > 0) {
-            double lastEpoch = epochs[epochs.length - 1];
-            long now = System.currentTimeMillis();
-            float nowYear = baseYearAnchor + (float) ((now - baseYearMillis) / MS_PER_YEAR_365);
-            float yearsAhead = (float) (nowYear - lastEpoch);
-            if (yearsAhead > 5.0f) {
-                synchronized (IGRFModel.class) {
-                    if (!warnedFutureBeyond5Years) {
-                        warnedFutureBeyond5Years = true;
-                        log.warn(
-                                "Current time is {} years beyond latest epoch {}; "
-                                    + "results will clamp to {}. Consider updating igrfcoeffs.txt",
-                                String.format("%.2f", yearsAhead), 
-                                String.format("%.1f", lastEpoch), 
-                                String.format("%.1f", lastEpoch + 5.0));
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Parse a token from the header line and add it to the years list if it's
-     * a numeric epoch. Known non-year tokens like "SV" or "g/h" are ignored.
-     */
-    private static void parseYearToken(String token, List<Double> years) {
-        if (token.equalsIgnoreCase("SV") || token.equalsIgnoreCase("g/h")) {
-            return;
-        }
-        try {
-            years.add(Double.parseDouble(token));
-        } catch (NumberFormatException e) {
-            // Ignore tokens that aren't parseable as a year — header robustness
-        }
     }
 
     /**
@@ -329,7 +287,15 @@ public final class IGRFModel {
                     String[] toks = line.split("\\s+");
                     years.clear();
                     for (String t : toks) {
-                        parseYearToken(t, years);
+                        // Parse year tokens, skip known non-year tokens like "SV" or "g/h"
+                        if (t.equalsIgnoreCase("SV") || t.equalsIgnoreCase("g/h")) {
+                            continue;
+                        }
+                        try {
+                            years.add(Double.parseDouble(t));
+                        } catch (NumberFormatException e) {
+                            // Ignore tokens that aren't parseable as a year
+                        }
                     }
                     headerParsed = !years.isEmpty();
                     continue;
