@@ -13,16 +13,16 @@ The library includes embedded IGRF-14 coefficients (epochs 1900-2030). It has no
 <dependency>
     <groupId>io.github.tinemuz</groupId>
     <artifactId>igrf-model</artifactId>
-    <version>1.0.0</version>
+    <version>RELEASE</version>
 </dependency>
 ```
 
 ### Gradle
 ```gradle
-implementation 'io.github.tinemuz:igrf-model:1.0.0'
+implementation 'io.github.tinemuz:igrf-model:+'
 ```
 
-> **Note:** Snapshot versions are published automatically to Maven Central snapshots repository. For snapshots, add the repository:
+> **Note:** Check [Maven Central](https://search.maven.org/artifact/io.github.tinemuz/igrf-model) for the latest release version. Snapshot versions are published automatically to Maven Central snapshots repository. For snapshots, add the repository:
 > ```xml
 > <repositories>
 >     <repository>
@@ -82,7 +82,7 @@ To enable logging, add an SLF4J binding to your project like Logback, Log4j2, or
 <dependency>
     <groupId>ch.qos.logback</groupId>
     <artifactId>logback-classic</artifactId>
-    <version>1.4.11</version>
+    <version>LATEST</version>
 </dependency>
 ```
 
@@ -104,4 +104,4 @@ Contributions are welcome. Please ensure tests pass, and documentation is update
 
 ---
 
-**Version 1.0.0** - IGRF-14 model support (epochs 1900-2030)
+**IGRF-14 model support** (epochs 1900-2030)
