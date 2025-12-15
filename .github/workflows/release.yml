@@ -51,8 +51,8 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add pom.xml
           git commit -m "Release version $VERSION"
-          git tag -a "v$VERSION" -m "Release $VERSION"
-          git push origin "v$VERSION"
+          git tag -a "$VERSION" -m "Release $VERSION"
+          git push origin "$VERSION"
 
       # Build, sign, and publish to Maven Central
       - name: Build and publish to Maven Central
@@ -65,7 +65,7 @@ jobs:
       # Create GitHub Release with auto-generated notes
       - name: Create GitHub Release
         run: |
-          gh release create "v$VERSION" \
+          gh release create "$VERSION" \
             --title "Release $VERSION" \
             --generate-notes
         env:
